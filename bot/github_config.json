@@ -1,0 +1,14 @@
+{
+    "github": {
+        "repository_url": "https://github.com/andrab524-create/vorahub-backups.git",
+        "auth_token": "",
+        "auto_backup": true,
+        "async_backup": true
+    },
+    "backup_files": [
+        "sales.json",
+        "claims.json",
+        "done_tickets.json",
+        "cooldowns.json"
+    ]
+}

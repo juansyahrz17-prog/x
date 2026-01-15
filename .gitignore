@@ -1,0 +1,35 @@
+# Environment variables and secrets
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+logs/
+
+# Firebase credentials
+serviceAccount.json
+vorahub-*.json
+
+# Other JSON files (only backup specific ones)
+warns.json
+tickets.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
