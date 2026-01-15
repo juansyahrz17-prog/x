@@ -63,22 +63,28 @@ if BACKUP_ENABLED:
                 repo_url = github_config.get("github", {}).get("repository_url", "")
                 auth_token = github_config.get("github", {}).get("auth_token", "")
                 
-                backup_manager = init_backup_manager(
-                    repo_path=BASE_DIR,
-                    remote_url=repo_url if repo_url else None,
-                    auth_token=auth_token if auth_token else None
-                )
-                print("[BACKUP] GitHub backup system initialized")
-                if repo_url:
-                    print(f"[BACKUP] Remote repository configured")
+                if repo_url and auth_token:
+                    # Initialize with token (new system requires all 3 params)
+                    backup_manager = init_backup_manager(
+                        repo_path=BASE_DIR,
+                        remote_url=repo_url,
+                        auth_token=auth_token
+                    )
+                    print("[BACKUP] ✓ GitHub backup system initialized")
+                    print("[BACKUP] ✓ Queue-based batching enabled")
+                    print("[BACKUP] ✓ Thread-safe locking active")
+                    print(f"[BACKUP] ✓ Remote: {repo_url.replace(auth_token, '***')}")
                 else:
-                    print("[BACKUP] No remote repository configured yet. Edit github_config.json to enable auto-push.")
+                    print("[BACKUP] ✗ Missing repository_url or auth_token in config")
+                    print("[BACKUP] ✗ Please edit github_config.json")
+                    BACKUP_ENABLED = False
         else:
-            # Initialize without remote (local commits only)
-            backup_manager = init_backup_manager(repo_path=BASE_DIR)
-            print("[BACKUP] GitHub backup initialized (local only - no remote configured)")
+            print("[BACKUP] ✗ github_config.json not found")
+            BACKUP_ENABLED = False
     except Exception as e:
-        print(f"[BACKUP] Failed to initialize backup manager: {e}")
+        print(f"[BACKUP] ✗ Failed to initialize: {e}")
+        import traceback
+        traceback.print_exc()
         BACKUP_ENABLED = False
 
 # ---------------------------
