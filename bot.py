@@ -1170,12 +1170,19 @@ class Client(commands.Bot):
         if not channel:
             return
 
-        image = await self.create_welcome_image(member, "welcome")
-
-        await channel.send(
-            content=f"Welcome {member.mention} to **{member.guild.name}**! 🎉",
-            file=dc.File(image, "welcome.png")
-        )
+        # Try to send welcome message with image, fallback to text-only if image fails
+        try:
+            image = await self.create_welcome_image(member, "welcome")
+            await channel.send(
+                content=f"Welcome {member.mention} to **{member.guild.name}**! 🎉",
+                file=dc.File(image, "welcome.png")
+            )
+        except Exception as e:
+            # If image creation fails (missing font/background), send text-only message
+            print(f"[WELCOME] Image creation failed: {e}")
+            await channel.send(
+                content=f"Welcome {member.mention} to **{member.guild.name}**! 🎉"
+            )
 
         try:
             await member.send(f"Welcome to **{member.guild.name}**, {member.name}!")
@@ -1198,12 +1205,19 @@ class Client(commands.Bot):
         if not channel:
             return
 
-        image = await self.create_welcome_image(member, "goodbye")
-
-        await channel.send(
-            content=f"{member.mention} has left the server 😭.",
-            file=dc.File(image, "goodbye.png")
-        )
+        # Try to send goodbye message with image, fallback to text-only if image fails
+        try:
+            image = await self.create_welcome_image(member, "goodbye")
+            await channel.send(
+                content=f"{member.mention} has left the server 😭.",
+                file=dc.File(image, "goodbye.png")
+            )
+        except Exception as e:
+            # If image creation fails (missing font/background), send text-only message
+            print(f"[GOODBYE] Image creation failed: {e}")
+            await channel.send(
+                content=f"{member.mention} has left the server 😭."
+            )
         print(f"[LEAVE] {member.name} dari {member.guild.name}")
 
 client = Client()
