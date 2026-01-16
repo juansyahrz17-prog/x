@@ -92,19 +92,31 @@ if BACKUP_ENABLED:
 # ---------------------------
 if not os.path.exists(TICKET_DATA_FILE):
     with open(TICKET_DATA_FILE, "w") as f:
-        json.dump({}, f, indent=4)
+        json.dump({"counter": 0, "tickets": {}}, f, indent=4)
     active_tickets = {}
+    ticket_count = 0
 else:
     with open(TICKET_DATA_FILE, "r") as f:
         try:
             data = json.load(f)
-            active_tickets = {int(k): v for k, v in data.items()}
+            # Support old format (just dict of tickets) and new format (with counter)
+            if "tickets" in data:
+                active_tickets = {int(k): v for k, v in data["tickets"].items()}
+                ticket_count = data.get("counter", 0)
+            else:
+                # Old format - just a dict of user_id: channel_id
+                active_tickets = {int(k): v for k, v in data.items()}
+                ticket_count = 0
         except json.JSONDecodeError:
             active_tickets = {}
+            ticket_count = 0
 
 def save_tickets():
     with open(TICKET_DATA_FILE, "w") as f:
-        json.dump({str(k): v for k, v in active_tickets.items()}, f, indent=4)
+        json.dump({
+            "counter": ticket_count,
+            "tickets": {str(k): v for k, v in active_tickets.items()}
+        }, f, indent=4)
 
 # ---------------------------
 # LOAD / SAVE CLAIMS
@@ -406,7 +418,12 @@ def remove_ticket(user_id):
         del active_tickets[user_id]
         save_tickets()
 
-ticket_count = max(active_tickets.values(), default=0)
+def increment_ticket_counter():
+    global ticket_count
+    ticket_count += 1
+    save_tickets()
+    return ticket_count
+
 
 # ---------------------------
 # EMBEDS
@@ -592,9 +609,10 @@ class DoneButtonView(ui.View):
         mark_ticket_done(channel.id)
 
 class TicketControlView(ui.View):
-    def __init__(self, is_premium=False):
+    def __init__(self, is_premium=False, is_x8=False):
         super().__init__(timeout=None)
         self.is_premium = is_premium
+        self.is_x8 = is_x8
         # Claim ticket button - only for premium tickets
         if self.is_premium:
             self.add_item(ui.Button(label="Claim Ticket", style=dc.ButtonStyle.green, emoji="✋", custom_id="claim_ticket"))
@@ -603,6 +621,9 @@ class TicketControlView(ui.View):
         # Payment button if premium
         if self.is_premium:
             self.add_item(ui.Button(label="💳 Bayar Sekarang", style=dc.ButtonStyle.blurple, custom_id="pay_now"))
+        # Payment button for X8 tickets
+        if self.is_x8:
+            self.add_item(ui.Button(label="💳 Bayar Sekarang", style=dc.ButtonStyle.blurple, custom_id="pay_now_x8"))
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         cid = interaction.data.get("custom_id")
@@ -612,6 +633,8 @@ class TicketControlView(ui.View):
             return await self.close_ticket_callback(interaction)
         elif cid == "pay_now":
             return await self.pay_now_callback(interaction)
+        elif cid == "pay_now_x8":
+            return await self.pay_now_x8_callback(interaction)
         return True
 
     async def claim_ticket_callback(self, interaction: Interaction):
@@ -762,6 +785,16 @@ class TicketControlView(ui.View):
         await send_payment_embed(interaction.channel)
         await interaction.response.send_message("📄 Informasi pembayaran dikirim!", ephemeral=True)
         return True
+    
+    async def pay_now_x8_callback(self, interaction: Interaction):
+        if not self.is_x8:
+            await interaction.response.send_message("❌ Tidak ada pembayaran di ticket ini.", ephemeral=True)
+            return False
+        await interaction.response.send_message(
+            "🧾 **QRIS Payment X8 Event:**\nhttps://cdn.discordapp.com/attachments/1448212332244242524/1461696579055521944/IMG_2466.png",
+            ephemeral=True
+        )
+        return True
 
 class PaymentActionView(ui.View):
     def __init__(self):
@@ -796,7 +829,6 @@ async def send_payment_embed(channel):
 # CREATE TICKET FUNCTION
 # ---------------------------
 async def create_ticket(interaction: Interaction, category_name: str):
-    global ticket_count
     user = interaction.user
     guild = interaction.guild
 
@@ -808,12 +840,12 @@ async def create_ticket(interaction: Interaction, category_name: str):
             f"⚠ Kamu masih punya ticket aktif di {ch_mention}.", ephemeral=True
         )
 
-    ticket_count += 1
+    current_ticket_num = increment_ticket_counter()
     category_id = TICKET_CATEGORY_ID_X8 if "x8" in category_name.lower() else TICKET_CATEGORY_ID
     category = guild.get_channel(category_id)
     staff_role = guild.get_role(STAFF_ROLE_ID)
     helper_role = guild.get_role(HELPER_ROLE_ID)
-    channel_name = f"{'x8-' if 'x8' in category_name.lower() else ''}ticket-{ticket_count:04}"
+    channel_name = f"{'x8-' if 'x8' in category_name.lower() else ''}ticket-{current_ticket_num:04}"
 
     ticket_channel = await guild.create_text_channel(
         name=channel_name,
@@ -849,10 +881,13 @@ async def create_ticket(interaction: Interaction, category_name: str):
     if helper_role:
         mentions.append(helper_role.mention)
 
+    # Detect if this is an X8 ticket
+    is_x8 = "x8" in category_name.lower()
+
     await ticket_channel.send(
         content=" ".join(mentions),
         embed=embed,
-        view=TicketControlView(is_premium=is_premium)
+        view=TicketControlView(is_premium=is_premium, is_x8=is_x8)
     )
 
     await interaction.response.send_message(f"🎫 Ticket kamu sudah dibuat: {ticket_channel.mention}", ephemeral=True)
@@ -971,7 +1006,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally HEH synced {len(synced)} slash commands.")
+            print(f"✅ Globally  synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
