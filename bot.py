@@ -39,6 +39,10 @@ STAFF_ROLE_ID = 1434818807368519755
 HELPER_ROLE_ID = 1457350924958695455
 TICKET_CATEGORY_ID = 1434818160577609840
 
+TICKET_CATEGORY_ID_MIDMAN = 1462046059143630984
+TICKET_PANEL_CHANNEL_ID_MIDMAN = 1462045328550133780
+MIDMAN_ROLE_ID = 1462063370189537280
+
 TICKET_PANEL_CHANNEL_ID_X8 = 1461688996081176628
 TICKET_CATEGORY_ID_X8 = 1461709088118407412
 
@@ -494,6 +498,29 @@ Yuk ikut event server boost X8 biar peluang dapet ikan rare makin besar 💎
 ⚡ Ayo isi slotmu sebelum penuh
 """
 
+TICKET_MIDMAN_DESC = """\
+𝗙𝗘𝗘 𝗠𝗜𝗗𝗠𝗔𝗡 / 𝗠𝗖
+
+———————————
+
+𝟷ᴋ — 𝟸𝟶ᴋ = ғᴇᴇ 𝟷ᴋ
+𝟸𝟷ᴋ — 𝟻𝟶ᴋ = ғᴇᴇ 𝟸ᴋ
+𝟻𝟷ᴋ — 𝟾𝟶ᴋ = ғᴇᴇ 𝟹ᴋ
+𝟾𝟷ᴋ — 𝟷𝟹𝟶ᴋ = ғᴇᴇ 𝟺ᴋ
+𝟷𝟹𝟷ᴋ — 𝟸𝟶𝟶ᴋ = ғᴇᴇ 𝟻ᴋ
+𝟸𝟶𝟷ᴋ — 𝟸𝟾𝟶ᴋ = ғᴇᴇ 𝟼ᴋ
+𝟸𝟾𝟷ᴋ — 𝟹𝟻𝟶ᴋ = ғᴇᴇ 𝟽ᴋ
+𝟹𝟻𝟷ᴋ — ᴅsᴛ = ғᴇᴇ 𝟷𝟶ᴋ
+
+𝗝𝗜𝗞𝗔 𝗧𝗥𝗫 𝗧𝗜𝗗𝗔𝗞 𝗝𝗔𝗗𝗜 𝗧𝗔𝗣𝗜 𝗦𝗨𝗗𝗔𝗛 𝗧𝗥𝗔𝗡𝗦𝗙𝗘𝗥, 𝗙𝗘𝗘 𝗧𝗘𝗧𝗔𝗣 𝗞𝗘 𝗣𝗢𝗧𝗢𝗡𝗚.
+
+———————————
+
+𝗟𝗘𝗕𝗜𝗛 𝗕𝗔𝗜𝗞 𝗞𝗘𝗟𝗨𝗔𝗥 𝗗𝗨𝗜𝗧 𝗕𝗨𝗔𝗧 𝗙𝗘𝗘 𝗔𝗗𝗠𝗜𝗡 𝗗𝗔𝗥𝗜 𝗣𝗔𝗗𝗔 𝗞𝗘𝗡𝗔 𝗦𝗖𝗔𝗠/𝗝𝗔𝗗𝗜 𝗞𝗢𝗥𝗕𝗔𝗡 𝗣𝗘𝗡𝗜𝗣𝗨𝗔𝗡 !!
+
+Klik tombol Di bawah Ini Untuk membuat Ticket Midman.
+"""
+
 # ---------------------------
 # VIEWS
 # ---------------------------
@@ -520,6 +547,60 @@ class TicketX8Button(ui.View):
     @ui.button(label="🚀 Register Event", style=dc.ButtonStyle.green, custom_id="ticket_x8")
     async def create_ticket_button(self, interaction: Interaction, button: ui.Button):
         await create_ticket(interaction, "X8 Ticket")
+
+# ---------------------------
+# MIDMAN MODAL & VIEW
+# ---------------------------
+class MidmanModal(ui.Modal, title="🤝 Form Midman Ticket"):
+    item = ui.TextInput(
+        label="Item / Akun",
+        placeholder="Contoh: Akun Roblox / Ikan Betta",
+        required=True,
+        max_length=100
+    )
+    buyer = ui.TextInput(
+        label="Buyer (Username / ID)",
+        placeholder="Username atau ID Discord buyer",
+        required=True,
+        max_length=100
+    )
+    seller = ui.TextInput(
+        label="Seller (Username / ID)", 
+        placeholder="Username atau ID Discord seller",
+        required=True,
+        max_length=100
+    )
+    harga = ui.TextInput(
+        label="Harga (Angka saja, No barter ya koncol)",
+        placeholder="Contoh: 50000",
+        required=True,
+        max_length=20
+    )
+    payment = ui.TextInput(
+        label="Payment (Pisahkan dengan /)",
+        placeholder="Contoh: Dana / Gopay / QRIS",
+        required=True,
+        max_length=100
+    )
+
+    async def on_submit(self, interaction: Interaction):
+        await create_midman_ticket(
+            interaction,
+            item=self.item.value,
+            buyer=self.buyer.value,
+            seller=self.seller.value,
+            harga=self.harga.value,
+            payment=self.payment.value
+        )
+
+class TicketMidmanButton(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @ui.button(label="🤝 Buat Ticket Midman", style=dc.ButtonStyle.green, custom_id="ticket_midman")
+    async def create_midman_ticket_button(self, interaction: Interaction, button: ui.Button):
+        # Show the modal form
+        await interaction.response.send_modal(MidmanModal())
 
 # ---------------------------
 # DONE BUTTON VIEW (appears after whitelist)
@@ -796,6 +877,168 @@ class TicketControlView(ui.View):
         )
         return True
 
+# ---------------------------
+# MIDMAN TICKET CONTROL VIEW (khusus Midman)
+# ---------------------------
+class MidmanTicketControlView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        # Claim ticket button for Midman
+        self.add_item(ui.Button(label="Claim Ticket", style=dc.ButtonStyle.green, emoji="✋", custom_id="claim_midman_ticket"))
+        # Close ticket button
+        self.add_item(ui.Button(label="Close Ticket", style=dc.ButtonStyle.red, emoji="🔒", custom_id="close_midman_ticket"))
+        # Done button for Midman
+        self.add_item(ui.Button(label="Done ✅", style=dc.ButtonStyle.blurple, emoji="✅", custom_id="done_midman_ticket"))
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        cid = interaction.data.get("custom_id")
+        if cid == "claim_midman_ticket":
+            return await self.claim_midman_callback(interaction)
+        elif cid == "close_midman_ticket":
+            return await self.close_midman_callback(interaction)
+        elif cid == "done_midman_ticket":
+            return await self.done_midman_callback(interaction)
+        return True
+
+    async def claim_midman_callback(self, interaction: Interaction):
+        user = interaction.user
+        guild = interaction.guild
+        channel = interaction.channel
+        midman_role = guild.get_role(MIDMAN_ROLE_ID)
+
+        # Check if user has Midman role
+        if midman_role not in user.roles:
+            await interaction.response.send_message("❌ Hanya Midman yang bisa claim ticket ini.", ephemeral=True)
+            return False
+
+        # Check if already claimed
+        existing_claim = get_claim(channel.id)
+        if existing_claim:
+            if existing_claim == user.id:
+                await interaction.response.send_message("✅ Kamu sudah claim ticket ini.", ephemeral=True)
+                return False
+            else:
+                claimer = guild.get_member(existing_claim)
+                claimer_name = claimer.mention if claimer else "Unknown"
+                await interaction.response.send_message(f"❌ Ticket ini sudah di-claim oleh {claimer_name}.", ephemeral=True)
+                return False
+
+        # Add claim
+        add_claim(channel.id, user.id)
+
+        # Find ticket creator
+        ticket_creator_id = None
+        for uid, cid in active_tickets.items():
+            if cid == channel.id:
+                ticket_creator_id = uid
+                break
+
+        # Update permissions - hide from other midman, only claimer and creator can see
+        ticket_creator = guild.get_member(ticket_creator_id) if ticket_creator_id else None
+        
+        # Hide from midman role
+        await channel.set_permissions(midman_role, view_channel=False)
+        
+        # Allow claimer
+        await channel.set_permissions(user, view_channel=True, send_messages=True)
+        
+        # Allow creator
+        if ticket_creator:
+            await channel.set_permissions(ticket_creator, view_channel=True, send_messages=True)
+
+        await interaction.response.send_message(
+            f"✅ {user.mention} telah **claim** ticket Midman ini!\n"
+            f"Ticket sekarang hanya terlihat oleh kamu dan pembuat ticket.",
+            ephemeral=False
+        )
+        return True
+
+    async def close_midman_callback(self, interaction: Interaction):
+        user = interaction.user
+        guild = interaction.guild
+        midman_role = guild.get_role(MIDMAN_ROLE_ID)
+
+        # Check if user has Midman role
+        if midman_role not in user.roles:
+            await interaction.response.send_message("❌ Hanya Midman yang bisa menutup ticket ini.", ephemeral=True)
+            return False
+
+        channel = interaction.channel
+        await interaction.response.send_message("📁 Membuat transcript…", ephemeral=True)
+        messages = []
+        async for msg in channel.history(limit=None, oldest_first=True):
+            ts = msg.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            content = msg.content or "*[Tidak ada teks]*"
+            if msg.attachments:
+                content += "\n" + "\n".join([f"[Attachment] {a.url}" for a in msg.attachments])
+            messages.append(f"**{msg.author}** [{ts}]:\n{content}\n")
+
+        transcript = "\n".join(messages)
+        log = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+        for i in range(0, len(transcript), 4096):
+            part = transcript[i:i+4096]
+            embed = dc.Embed(title=f"📝 Transcript Midman — {channel.name}", description=part, color=VORA_BLUE)
+            await log.send(embed=embed)
+        await log.send(f"✅ Transcript ticket Midman **{channel.name}** selesai.")
+
+        # Remove from active tickets and claims
+        for uid, cid in list(active_tickets.items()):
+            if cid == channel.id:
+                del active_tickets[uid]
+        save_tickets()
+        remove_claim(channel.id)
+        remove_done_ticket(channel.id)
+        await channel.delete()
+        return True
+
+    async def done_midman_callback(self, interaction: Interaction):
+        user = interaction.user
+        guild = interaction.guild
+        channel = interaction.channel
+        midman_role = guild.get_role(MIDMAN_ROLE_ID)
+
+        # Check if user has Midman role (only Midman can mark as done)
+        if midman_role not in user.roles:
+            await interaction.response.send_message("❌ Hanya Midman yang bisa mark ticket ini sebagai Done.", ephemeral=True)
+            return False
+
+        # Check if ticket is already marked as done
+        if is_ticket_done(channel.id):
+            await interaction.response.send_message(
+                "❌ Ticket ini sudah di-mark sebagai **Done** sebelumnya!",
+                ephemeral=True
+            )
+            return False
+
+        # Check if ticket is claimed
+        claimer_id = get_claim(channel.id)
+        if not claimer_id:
+            await interaction.response.send_message("❌ Ticket ini belum di-claim. Claim dulu sebelum mark Done.", ephemeral=True)
+            return False
+
+        # Only the claimer can mark as done
+        if claimer_id != user.id:
+            claimer = guild.get_member(claimer_id)
+            claimer_name = claimer.mention if claimer else "Unknown"
+            await interaction.response.send_message(f"❌ Hanya {claimer_name} (yang claim) yang bisa mark Done.", ephemeral=True)
+            return False
+
+        # Mark as done
+        mark_ticket_done(channel.id)
+
+        embed = dc.Embed(
+            title="✅ Transaksi Midman Selesai!",
+            description=(
+                f"Ticket Midman telah ditandai selesai oleh {user.mention}.\n\n"
+                "Terima kasih telah menggunakan jasa Midman VoraHub! 🤝"
+            ),
+            color=0x00ff00
+        )
+        embed.set_footer(text="VoraHub Midman System • Safe Transaction")
+
+        await interaction.response.send_message(embed=embed)
+        return True
+
 class PaymentActionView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -902,6 +1145,94 @@ async def create_ticket(interaction: Interaction, category_name: str):
     await log.send(embed=log_embed)
 
 # ---------------------------
+# CREATE MIDMAN TICKET FUNCTION
+# ---------------------------
+async def create_midman_ticket(interaction: Interaction, item: str, buyer: str, seller: str, harga: str, payment: str):
+    user = interaction.user
+    guild = interaction.guild
+
+    # Cek ticket aktif
+    if user.id in active_tickets:
+        ch = guild.get_channel(active_tickets[user.id])
+        ch_mention = ch.mention if ch else "tidak ditemukan"
+        return await interaction.response.send_message(
+            f"⚠ Kamu masih punya ticket aktif di {ch_mention}.", ephemeral=True
+        )
+
+    current_ticket_num = increment_ticket_counter()
+    category = guild.get_channel(TICKET_CATEGORY_ID_MIDMAN)
+    midman_role = guild.get_role(MIDMAN_ROLE_ID)
+    channel_name = f"midman-{current_ticket_num:04}"
+
+    # Overwrites - pembuat ticket, midman role
+    overwrites = {
+        guild.default_role: dc.PermissionOverwrite(view_channel=False),
+        user: dc.PermissionOverwrite(view_channel=True, send_messages=True),
+        midman_role: dc.PermissionOverwrite(view_channel=True, send_messages=True)
+    }
+
+    ticket_channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        overwrites=overwrites
+    )
+    add_ticket(user.id, ticket_channel.id)
+
+    # Format harga dengan comma
+    try:
+        harga_int = int(harga.replace(".", "").replace(",", "").replace(" ", ""))
+        harga_formatted = f"IDR {harga_int:,}"
+    except:
+        harga_formatted = f"IDR {harga}"
+
+    embed = dc.Embed(
+        title="🤝 Midman Ticket Dibuat",
+        description=(
+            f"Halo {user.mention}!\n\n"
+            f"Ticket Midman kamu telah berhasil dibuat.\n"
+            "Staff Midman akan segera merespons untuk membantu transaksi.\n\n"
+            "**⚠️ PENTING:** Fee Midman akan dipotong sesuai harga transaksi."
+        ),
+        color=VORA_BLUE
+    )
+    embed.add_field(name="📦 Item / Akun", value=item, inline=False)
+    embed.add_field(name="🛒 Buyer", value=buyer, inline=True)
+    embed.add_field(name="🏪 Seller", value=seller, inline=True)
+    embed.add_field(name="💰 Harga", value=harga_formatted, inline=True)
+    embed.add_field(name="💳 Payment", value=payment, inline=True)
+    embed.add_field(name="📝 Pembuat Ticket", value=user.mention, inline=True)
+    embed.set_footer(text="VoraHub Midman System • Safe Transaction")
+
+    mentions = []
+    if midman_role:
+        mentions.append(midman_role.mention)
+
+    await ticket_channel.send(
+        content=" ".join(mentions),
+        embed=embed,
+        view=MidmanTicketControlView()
+    )
+
+    await interaction.response.send_message(f"🎫 Ticket Midman kamu sudah dibuat: {ticket_channel.mention}", ephemeral=True)
+
+    log = guild.get_channel(TICKET_LOG_CHANNEL_ID)
+    log_embed = dc.Embed(
+        title="📩 Midman Ticket Dibuat",
+        description=(
+            f"**User:** {user.mention}\n"
+            f"**Item:** {item}\n"
+            f"**Buyer:** {buyer}\n"
+            f"**Seller:** {seller}\n"
+            f"**Harga:** {harga_formatted}\n"
+            f"**Payment:** {payment}\n\n"
+            f"📌 **Channel:** {ticket_channel.mention}"
+        ),
+        color=VORA_BLUE
+    )
+    log_embed.set_footer(text="VoraHub Midman System • Ticket Log")
+    await log.send(embed=log_embed)
+
+# ---------------------------
 # VERIF VIEW
 # ---------------------------
 class VerifView(ui.View):
@@ -993,6 +1324,18 @@ class Client(commands.Bot):
             "tag": f"<@&{MEMBER_ROLE_ID}>"   # ⬅ MENTION MEMBER SETIAP EDIT
         },
         {
+            "name": "Ticket Midman",
+            "channel_id": TICKET_PANEL_CHANNEL_ID_MIDMAN,
+            "message_id": None,  # Will be created on first run
+            "embed": dc.Embed(
+                title="🤝・Midman Ticket",
+                description=TICKET_MIDMAN_DESC,
+                color=VORA_BLUE
+            ).set_footer(text="VoraHub 2026 | .gg/vorahub"),
+            "view": TicketMidmanButton,
+            "tag": None
+        },
+        {
             "name": "Verifikasi",
             "channel_id": 1443599341850857562,
             "message_id": 1443640023516708884,
@@ -1006,7 +1349,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally HEH synced {len(synced)} slash commands.")
+            print(f"✅ Globally WKWK synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
@@ -1018,6 +1361,93 @@ class Client(commands.Bot):
                 panel["embed"],
                 panel["view"]()  # <-- bikin instance sekarang
             )
+        
+        # Jalankan auto check whitelist pertama kali saat load
+        await self.check_whitelist_tickets()
+        
+        # Start auto check loop setiap 5 detik
+        if not self.auto_check_whitelist_loop.is_running():
+            self.auto_check_whitelist_loop.start()
+            print("[AUTO-CHECK] ✓ Whitelist auto-check started (every 5 seconds)")
+
+    @tasks.loop(seconds=5)
+    async def auto_check_whitelist_loop(self):
+        """Auto check setiap 5 detik untuk ticket yang WL tapi belum Done"""
+        await self.check_whitelist_tickets()
+    
+    @auto_check_whitelist_loop.before_loop
+    async def before_auto_check(self):
+        await self.wait_until_ready()
+    
+    async def check_whitelist_tickets(self):
+        """
+        Cek semua ticket aktif:
+        - Jika pembuat ticket sudah punya role WL
+        - Dan ticket belum di-mark Done
+        - Kirim panel Done ke channel tersebut
+        """
+        # Get first guild (assuming single server bot)
+        if not self.guilds:
+            return
+        
+        guild = self.guilds[0]
+        wl_role = guild.get_role(WL_ROLE_ID)
+        if not wl_role:
+            return
+        
+        # Iterate through all active tickets
+        for user_id, channel_id in list(active_tickets.items()):
+            try:
+                # Get the ticket creator
+                member = guild.get_member(user_id)
+                if not member:
+                    continue
+                
+                # Check if member has WL role
+                if wl_role not in member.roles:
+                    continue
+                
+                # Check if ticket is already marked as done
+                if is_ticket_done(channel_id):
+                    continue
+                
+                # Get the ticket channel
+                channel = guild.get_channel(channel_id)
+                if not channel:
+                    continue
+                
+                # Check if this is a premium ticket (in TICKET_CATEGORY_ID)
+                if channel.category_id != TICKET_CATEGORY_ID:
+                    continue
+                
+                # Check if ticket is claimed
+                claimer_id = get_claim(channel_id)
+                if not claimer_id:
+                    continue
+                
+                # Send Done panel to this channel
+                embed = dc.Embed(
+                    title="✅ Whitelist Berhasil!",
+                    description=(
+                        f"Halo {member.mention}! Kamu sudah berhasil di-whitelist! 🎉\n\n"
+                        "Jika kamu **puas dengan pelayanan** staff, silakan klik tombol **Done** di bawah.\n"
+                        "Ini akan memberikan credit sales kepada staff yang membantu kamu."
+                    ),
+                    color=VORA_BLUE
+                )
+                embed.set_footer(text="VoraHub Premium • Terima kasih!")
+                
+                await channel.send(
+                    embed=embed,
+                    view=DoneButtonView(is_premium=True)
+                )
+                
+                # Mark as done immediately to prevent duplicate sends
+                mark_ticket_done(channel_id)
+                print(f"[AUTO-CHECK] ✓ Sent Done panel to {channel.name} for {member.name}")
+                
+            except Exception as e:
+                print(f"[AUTO-CHECK] ✗ Error checking ticket {channel_id}: {e}")
 
     async def auto_edit_panel(self, channel_id, message_id, embed, view, tag=None):
         channel = self.get_channel(channel_id)
@@ -1025,6 +1455,13 @@ class Client(commands.Bot):
             print(f"[PANEL] Channel {channel_id} tidak ditemukan.")
             return
         content = tag if tag else None
+        
+        # If message_id is None, just send new message
+        if message_id is None:
+            await channel.send(content=content, embed=embed, view=view)
+            print(f"[PANEL] Message baru dibuat di channel {channel_id}.")
+            return
+            
         try:
             msg = await channel.fetch_message(message_id)
             await msg.edit(content=content, embed=embed, view=view)
