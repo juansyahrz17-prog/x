@@ -1481,7 +1481,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally vorahubGG synced {len(synced)} slash commands.")
+            print(f"✅ Globally vorahubGGG synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
@@ -1537,6 +1537,26 @@ class Client(commands.Bot):
                 
                 # Check if member has WL role
                 if wl_role not in member.roles:
+                    continue
+
+                # Check for whitelist confirmation message in channel history
+                # This ensures we match the specific transaction, not just the user's role
+                has_wl_message = False
+                try:
+                    async for msg in channel.history(limit=20):
+                        content = msg.content or ""
+                        # Check embeds too
+                        if msg.embeds:
+                            for emb in msg.embeds:
+                                content += " " + (emb.description or "")
+                        
+                        if "You have been whitelisted! You can access the script via this message" in content:
+                            has_wl_message = True
+                            break
+                except:
+                    pass
+                
+                if not has_wl_message:
                     continue
                 
                 # Check if ticket is already marked as done
