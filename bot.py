@@ -5,7 +5,7 @@ import aiohttp
 import datetime
 import discord as dc
 from datetime import timedelta
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 from discord import ui, Interaction, ButtonStyle, Embed
 from PIL import Image, ImageDraw, ImageFont
