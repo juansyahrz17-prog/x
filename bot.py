@@ -1006,7 +1006,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally  synced {len(synced)} slash commands.")
+            print(f"✅ Globally HEH synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
@@ -1573,17 +1573,15 @@ async def remove_user(interaction: dc.Interaction, user: dc.Member):
         ephemeral=False
     )
 
-@client.tree.command(name="sales", description="Catat penjualan atau lihat leaderboard")
+@client.tree.command(name="sales", description="Sales")
 @app_commands.describe(
     staff="(Opsional) Staff yang melakukan penjualan - kosongkan untuk lihat leaderboard",
-    amount="(Opsional) Jumlah penjualan (IDR)",
     description="(Opsional) Deskripsi penjualan"
 )
 async def sales(
     interaction: dc.Interaction,
     staff: dc.Member = None,
-    amount: int = None,
-    description: str = "Premium Sale"
+    description: str = "Sales"
 ):
     staff_role = interaction.guild.get_role(STAFF_ROLE_ID)
     helper_role = interaction.guild.get_role(HELPER_ROLE_ID)
@@ -1596,7 +1594,18 @@ async def sales(
         )
     
     # If no parameters, show leaderboard
-    if staff is None or amount is None:
+    if staff is None:
+        # Auto-cleanup: remove entries with total > 30000
+        to_remove = []
+        for staff_id_str, data in sales_data.items():
+            if data["total"] > 30000:
+                to_remove.append(staff_id_str)
+        
+        if to_remove:
+            for staff_id_str in to_remove:
+                del sales_data[staff_id_str]
+            save_sales()
+        
         # Get all sales data and sort by total
         leaderboard = []
         for staff_id_str, data in sales_data.items():
@@ -1657,28 +1666,6 @@ async def sales(
         embed.set_footer(text="VoraHub Sales Tracker • Komisi 10%")
         
         await interaction.response.send_message(embed=embed)
-        return
-    
-    # Record sale (original functionality)
-    add_sale(staff.id, amount, description)
-    
-    # Get updated stats
-    staff_sales = get_sales(staff.id)
-    total = staff_sales["total"]
-    count = len(staff_sales["sales"])
-    
-    embed = dc.Embed(
-        title="💰 Penjualan Tercatat",
-        description=f"Penjualan berhasil dicatat untuk {staff.mention}",
-        color=VORA_BLUE
-    )
-    embed.add_field(name="Jumlah", value=f"IDR {amount:,}", inline=True)
-    embed.add_field(name="Deskripsi", value=description, inline=True)
-    embed.add_field(name="Total Penjualan", value=f"IDR {total:,}", inline=False)
-    embed.add_field(name="Jumlah Transaksi", value=f"{count} transaksi", inline=False)
-    embed.set_footer(text="VoraHub Sales Tracker")
-    
-    await interaction.response.send_message(embed=embed)
 
 @client.tree.command(name="mygaji", description="Lihat total penjualan dan gaji staff")
 @app_commands.describe(
