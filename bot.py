@@ -53,6 +53,8 @@ WL_ROLE_ID = 1452500424551567360  # Whitelist role
 VORA_BLUE = 0x3498db
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TICKET_DATA_FILE = os.path.join(BASE_DIR, "tickets.json")
+MIDMAN_TICKET_FILE = os.path.join(BASE_DIR, "midmanticket.json")
+X8_TICKET_FILE = os.path.join(BASE_DIR, "x8ticket.json")
 CLAIMS_FILE = os.path.join(BASE_DIR, "claims.json")
 SALES_FILE = os.path.join(BASE_DIR, "sales.json")
 
@@ -121,6 +123,94 @@ def save_tickets():
             "counter": ticket_count,
             "tickets": {str(k): v for k, v in active_tickets.items()}
         }, f, indent=4)
+
+# ---------------------------
+# LOAD / SAVE MIDMAN TICKETS
+# ---------------------------
+if not os.path.exists(MIDMAN_TICKET_FILE):
+    with open(MIDMAN_TICKET_FILE, "w") as f:
+        json.dump({"counter": 0, "tickets": {}}, f, indent=4)
+    midman_tickets = {}
+    midman_ticket_count = 0
+else:
+    with open(MIDMAN_TICKET_FILE, "r") as f:
+        try:
+            data = json.load(f)
+            if "tickets" in data:
+                midman_tickets = {int(k): v for k, v in data["tickets"].items()}
+                midman_ticket_count = data.get("counter", 0)
+            else:
+                midman_tickets = {int(k): v for k, v in data.items()}
+                midman_ticket_count = 0
+        except json.JSONDecodeError:
+            midman_tickets = {}
+            midman_ticket_count = 0
+
+def save_midman_tickets():
+    with open(MIDMAN_TICKET_FILE, "w") as f:
+        json.dump({
+            "counter": midman_ticket_count,
+            "tickets": {str(k): v for k, v in midman_tickets.items()}
+        }, f, indent=4)
+
+def add_midman_ticket(user_id, channel_id):
+    midman_tickets[user_id] = channel_id
+    save_midman_tickets()
+
+def remove_midman_ticket(user_id):
+    if user_id in midman_tickets:
+        del midman_tickets[user_id]
+        save_midman_tickets()
+
+def increment_midman_ticket_counter():
+    global midman_ticket_count
+    midman_ticket_count += 1
+    save_midman_tickets()
+    return midman_ticket_count
+
+# ---------------------------
+# LOAD / SAVE X8 TICKETS
+# ---------------------------
+if not os.path.exists(X8_TICKET_FILE):
+    with open(X8_TICKET_FILE, "w") as f:
+        json.dump({"counter": 0, "tickets": {}}, f, indent=4)
+    x8_tickets = {}
+    x8_ticket_count = 0
+else:
+    with open(X8_TICKET_FILE, "r") as f:
+        try:
+            data = json.load(f)
+            if "tickets" in data:
+                x8_tickets = {int(k): v for k, v in data["tickets"].items()}
+                x8_ticket_count = data.get("counter", 0)
+            else:
+                x8_tickets = {int(k): v for k, v in data.items()}
+                x8_ticket_count = 0
+        except json.JSONDecodeError:
+            x8_tickets = {}
+            x8_ticket_count = 0
+
+def save_x8_tickets():
+    with open(X8_TICKET_FILE, "w") as f:
+        json.dump({
+            "counter": x8_ticket_count,
+            "tickets": {str(k): v for k, v in x8_tickets.items()}
+        }, f, indent=4)
+
+def add_x8_ticket(user_id, channel_id):
+    x8_tickets[user_id] = channel_id
+    save_x8_tickets()
+
+def remove_x8_ticket(user_id):
+    if user_id in x8_tickets:
+        del x8_tickets[user_id]
+        save_x8_tickets()
+
+def increment_x8_ticket_counter():
+    global x8_ticket_count
+    x8_ticket_count += 1
+    save_x8_tickets()
+    return x8_ticket_count
 
 # ---------------------------
 # LOAD / SAVE CLAIMS
@@ -786,7 +876,8 @@ class TicketControlView(ui.View):
 
         # Find ticket creator
         ticket_creator_id = None
-        for uid, cid in active_tickets.items():
+        ticket_source = x8_tickets if self.is_x8 else active_tickets
+        for uid, cid in ticket_source.items():
             if cid == channel.id:
                 ticket_creator_id = uid
                 break
@@ -849,11 +940,17 @@ class TicketControlView(ui.View):
             await log.send(embed=embed)
         await log.send(f"✅ Transcript ticket **{channel.name}** selesai.")
 
-        # Remove from active tickets and claims
-        for uid, cid in list(active_tickets.items()):
-            if cid == channel.id:
-                del active_tickets[uid]
-        save_tickets()
+        # Remove from active tickets/x8 tickets and claims
+        if self.is_x8:
+             for uid, cid in list(x8_tickets.items()):
+                if cid == channel.id:
+                    del x8_tickets[uid]
+             save_x8_tickets()
+        else:
+             for uid, cid in list(active_tickets.items()):
+                if cid == channel.id:
+                    del active_tickets[uid]
+             save_tickets()
         remove_claim(channel.id)
         remove_done_ticket(channel.id)  # Clean up done tickets list
         await channel.delete()
@@ -926,9 +1023,9 @@ class MidmanTicketControlView(ui.View):
         # Add claim
         add_claim(channel.id, user.id)
 
-        # Find ticket creator
+        # Find ticket creator (from midman_tickets)
         ticket_creator_id = None
-        for uid, cid in active_tickets.items():
+        for uid, cid in midman_tickets.items():
             if cid == channel.id:
                 ticket_creator_id = uid
                 break
@@ -981,11 +1078,11 @@ class MidmanTicketControlView(ui.View):
             await log.send(embed=embed)
         await log.send(f"✅ Transcript ticket Midman **{channel.name}** selesai.")
 
-        # Remove from active tickets and claims
-        for uid, cid in list(active_tickets.items()):
+        # Remove from midman tickets and claims
+        for uid, cid in list(midman_tickets.items()):
             if cid == channel.id:
-                del active_tickets[uid]
-        save_tickets()
+                del midman_tickets[uid]
+        save_midman_tickets()
         remove_claim(channel.id)
         remove_done_ticket(channel.id)
         await channel.delete()
@@ -1074,21 +1171,32 @@ async def send_payment_embed(channel):
 async def create_ticket(interaction: Interaction, category_name: str):
     user = interaction.user
     guild = interaction.guild
+    
+    is_x8 = "x8" in category_name.lower()
 
-    # Cek ticket aktif
-    if user.id in active_tickets:
-        ch = guild.get_channel(active_tickets[user.id])
-        ch_mention = ch.mention if ch else "tidak ditemukan"
-        return await interaction.response.send_message(
-            f"⚠ Kamu masih punya ticket aktif di {ch_mention}.", ephemeral=True
-        )
+    # Cek ticket aktif (berbeda storage untuk X8)
+    if is_x8:
+        if user.id in x8_tickets:
+            ch = guild.get_channel(x8_tickets[user.id])
+            ch_mention = ch.mention if ch else "tidak ditemukan"
+            return await interaction.response.send_message(
+                f"⚠ Kamu masih punya ticket X8 aktif di {ch_mention}.", ephemeral=True
+            )
+        current_ticket_num = increment_x8_ticket_counter()
+    else:
+        if user.id in active_tickets:
+            ch = guild.get_channel(active_tickets[user.id])
+            ch_mention = ch.mention if ch else "tidak ditemukan"
+            return await interaction.response.send_message(
+                f"⚠ Kamu masih punya ticket aktif di {ch_mention}.", ephemeral=True
+            )
+        current_ticket_num = increment_ticket_counter()
 
-    current_ticket_num = increment_ticket_counter()
-    category_id = TICKET_CATEGORY_ID_X8 if "x8" in category_name.lower() else TICKET_CATEGORY_ID
+    category_id = TICKET_CATEGORY_ID_X8 if is_x8 else TICKET_CATEGORY_ID
     category = guild.get_channel(category_id)
     staff_role = guild.get_role(STAFF_ROLE_ID)
     helper_role = guild.get_role(HELPER_ROLE_ID)
-    channel_name = f"{'x8-' if 'x8' in category_name.lower() else ''}ticket-{current_ticket_num:04}"
+    channel_name = f"{'x8-' if is_x8 else ''}ticket-{current_ticket_num:04}"
 
     ticket_channel = await guild.create_text_channel(
         name=channel_name,
@@ -1100,7 +1208,12 @@ async def create_ticket(interaction: Interaction, category_name: str):
             helper_role: dc.PermissionOverwrite(view_channel=True, send_messages=True)
         }
     )
-    add_ticket(user.id, ticket_channel.id)
+    
+    # Save to appropriate storage
+    if is_x8:
+        add_x8_ticket(user.id, ticket_channel.id)
+    else:
+        add_ticket(user.id, ticket_channel.id)
 
     is_premium = "premium" in category_name.lower()
 
@@ -1151,15 +1264,15 @@ async def create_midman_ticket(interaction: Interaction, item: str, buyer: str, 
     user = interaction.user
     guild = interaction.guild
 
-    # Cek ticket aktif
-    if user.id in active_tickets:
-        ch = guild.get_channel(active_tickets[user.id])
+    # Cek ticket aktif (cek di midman_tickets)
+    if user.id in midman_tickets:
+        ch = guild.get_channel(midman_tickets[user.id])
         ch_mention = ch.mention if ch else "tidak ditemukan"
         return await interaction.response.send_message(
-            f"⚠ Kamu masih punya ticket aktif di {ch_mention}.", ephemeral=True
+            f"⚠ Kamu masih punya ticket Midman aktif di {ch_mention}.", ephemeral=True
         )
 
-    current_ticket_num = increment_ticket_counter()
+    current_ticket_num = increment_midman_ticket_counter()
     category = guild.get_channel(TICKET_CATEGORY_ID_MIDMAN)
     midman_role = guild.get_role(MIDMAN_ROLE_ID)
     channel_name = f"midman-{current_ticket_num:04}"
@@ -1176,7 +1289,7 @@ async def create_midman_ticket(interaction: Interaction, item: str, buyer: str, 
         category=category,
         overwrites=overwrites
     )
-    add_ticket(user.id, ticket_channel.id)
+    add_midman_ticket(user.id, ticket_channel.id)
 
     # Format harga dengan comma
     try:
@@ -1266,7 +1379,7 @@ class VerifView(ui.View):
             ),
             color=VORA_BLUE
         )
-        embed.set_footer(text="VoraHub Official • © 2025")
+        embed.set_footer(text="VoraHub Official • © 2026")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 def get_verif_embed():
@@ -1285,7 +1398,7 @@ def get_verif_embed():
         ),
         color=VORA_BLUE
     )
-    embed.set_footer(text="VoraHub Official • © 2025")
+    embed.set_footer(text="VoraHub Official • © 2026")
     return embed
 
 # ---------------------------
@@ -1349,7 +1462,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally WKWK synced {len(synced)} slash commands.")
+            print(f"✅ Globally vorahub synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
@@ -1917,7 +2030,7 @@ async def changelog(
     else:
         embed.set_thumbnail(url="https://cdn.discordapp.com/embed/avatars/0.png")
 
-    embed.set_footer(text="VoraHub Official Update • © 2025")
+    embed.set_footer(text="VoraHub Official Update • © 2026")
 
     await changelog_channel.send(tag_message, embed=embed)
 
