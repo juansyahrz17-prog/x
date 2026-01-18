@@ -1595,17 +1595,6 @@ async def sales(
     
     # If no parameters, show leaderboard
     if staff is None:
-        # Auto-cleanup: remove entries with total > 30000
-        to_remove = []
-        for staff_id_str, data in sales_data.items():
-            if data["total"] > 30000:
-                to_remove.append(staff_id_str)
-        
-        if to_remove:
-            for staff_id_str in to_remove:
-                del sales_data[staff_id_str]
-            save_sales()
-        
         # Get all sales data and sort by total
         leaderboard = []
         for staff_id_str, data in sales_data.items():
