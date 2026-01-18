@@ -1284,6 +1284,22 @@ async def create_midman_ticket(interaction: Interaction, item: str, buyer: str, 
         midman_role: dc.PermissionOverwrite(view_channel=True, send_messages=True)
     }
 
+    # Resolve Buyer & Seller input to add to permissions
+    def resolve_member(txt):
+        txt = str(txt).replace("<@", "").replace(">", "").replace("!", "").strip()
+        if txt.isdigit():
+            return guild.get_member(int(txt))
+        return None
+
+    buyer_member = resolve_member(buyer)
+    seller_member = resolve_member(seller)
+
+    if buyer_member:
+        overwrites[buyer_member] = dc.PermissionOverwrite(view_channel=True, send_messages=True)
+    
+    if seller_member:
+        overwrites[seller_member] = dc.PermissionOverwrite(view_channel=True, send_messages=True)
+
     ticket_channel = await guild.create_text_channel(
         name=channel_name,
         category=category,
@@ -1308,9 +1324,12 @@ async def create_midman_ticket(interaction: Interaction, item: str, buyer: str, 
         ),
         color=VORA_BLUE
     )
+    buyer_display = buyer_member.mention if buyer_member else buyer
+    seller_display = seller_member.mention if seller_member else seller
+
     embed.add_field(name="📦 Item / Akun", value=item, inline=False)
-    embed.add_field(name="🛒 Buyer", value=buyer, inline=True)
-    embed.add_field(name="🏪 Seller", value=seller, inline=True)
+    embed.add_field(name="🛒 Buyer", value=buyer_display, inline=True)
+    embed.add_field(name="🏪 Seller", value=seller_display, inline=True)
     embed.add_field(name="💰 Harga", value=harga_formatted, inline=True)
     embed.add_field(name="💳 Payment", value=payment, inline=True)
     embed.add_field(name="📝 Pembuat Ticket", value=user.mention, inline=True)
@@ -1462,7 +1481,7 @@ class Client(commands.Bot):
         print(f"Logged in as {self.user}")
         try:
             synced = await self.tree.sync()
-            print(f"✅ Globally vorahub synced {len(synced)} slash commands.")
+            print(f"✅ Globally vorahubGG synced {len(synced)} slash commands.")
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
 
